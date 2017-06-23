@@ -9,7 +9,7 @@ using Crestron.SimplSharp.Net;
 namespace ILiveSmart
 {
     public class ALiYunSMS
-    {
+    {//
         
         //入侵提醒SMS_46695144 您的${zonemsg}有人非法入侵，请您确认！
         /*
