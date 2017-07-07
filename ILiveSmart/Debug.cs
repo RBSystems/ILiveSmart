@@ -19,11 +19,13 @@ namespace ILiveSmart
         }
         private void SendData(string data)
         {
-            byte[] sendBytes = Encoding.ASCII.GetBytes(data);
+            CrestronConsole.PrintLine(data);
+
+          /*  byte[] sendBytes = Encoding.ASCII.GetBytes(data);
             
             client.Connect();
             client.SendData(sendBytes);
-            client.DisConnect();
+            client.DisConnect();*/
         }
 
         public void WriteLine(string msg)
