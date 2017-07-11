@@ -11,19 +11,19 @@ namespace SenSmart.Exec
     /// <summary>
     /// 爱联继电器
     /// </summary>
-    public class ILiveIsin
+    public class ILiveIsinRelay
     {
         public ILiveIsinStatus Status = new ILiveIsinStatus();
 
         public ComPort comIsin;
         int addr = 0;
-        public ILiveIsin(int addr, ComPort com)
+        public ILiveIsinRelay(int addr, ComPort com)
             : this(com)
         {
             this.addr = addr;
         }
 
-        public ILiveIsin(ComPort com)
+        public ILiveIsinRelay(ComPort com)
         {
             #region 注册串口
             comIsin = com;
@@ -98,64 +98,6 @@ namespace SenSmart.Exec
         }
         private void Relay8SW8(int address, int port1, int port2, bool states)
         {
-            //for (int i = 0; i < 12; i++)
-            //{
-            //    int b = (port1 >> i) & 1;
-            //    bool state = b == 1 ? true : false;
-
-            //    switch (i)
-            //    {
-            //        case 0:
-            //            this.Status.Relay0 =state;
-            //            break;
-            //        case 1:
-            //            this.Status.Relay1 = state;
-            //            break;
-            //        case 2:
-            //            this.Status.Relay2 = state;
-            //            break;
-            //        case 3:
-            //            this.Status.Relay3 = state;
-            //            break;
-            //        case 4:
-            //            this.Status.Relay4 = state;
-            //            break;
-            //        case 5:
-            //            this.Status.Relay5 = state;
-            //            break;
-            //        case 6:
-            //            this.Status.Relay6 = state;
-            //            break;
-            //        case 7:
-            //            this.Status.Relay7 = state;
-            //            break;
-            //        default:
-            //            break;
-            //    }
-            //}
-            //for (int i = 0; i < 4; i++)
-            //{
-            //    int b = (port2 >> i) & 1;
-            //    bool state = b == 1 ? true : false;
-
-            //    switch (i)
-            //    {
-            //        case 0:
-            //            this.Status.Relay8 = state;
-            //            break;
-            //        case 1:
-            //            this.Status.Relay9 = state;
-            //            break;
-            //        case 2:
-            //            this.Status.Relay10 = state;
-            //            break;
-            //        case 3:
-            //            this.Status.Relay11 = state;
-            //            break;
-            //        default:
-            //            break;
-            //    }
-            //}
             /*
              * 1 B2 协议头 
              * 2 00 设备类型 
@@ -192,6 +134,135 @@ namespace SenSmart.Exec
             Thread.Sleep(500);
 
         }
+    }
+
+    /// <summary>
+    /// 爱联4路调光模块
+    /// </summary>
+    public class ILiveIsinDimmer
+    {
+        public ILiveIsinDimmerStatus Status = new ILiveIsinDimmerStatus();
+
+        public ComPort comIsin;
+        int addr = 0;
+        public ILiveIsinDimmer(int addr, ComPort com)
+            : this(com)
+        {
+            this.addr = addr;
+        }
+
+        public ILiveIsinDimmer(ComPort com)
+        {
+            comIsin = com;
+            comIsin.SerialDataReceived += new ComPortDataReceivedEvent(comIsin_SerialDataReceived);
+            if (!comIsin.Registered)
+            {
+                if (comIsin.Register() != eDeviceRegistrationUnRegistrationResponse.Success)
+                    ErrorLog.Error("COM Port couldn't be registered. Cause: {0}", comIsin.DeviceRegistrationFailureReason);
+                if (comIsin.Registered)
+                    comIsin.SetComPortSpec(ComPort.eComBaudRates.ComspecBaudRate9600,
+                                                                     ComPort.eComDataBits.ComspecDataBits8,
+                                                                     ComPort.eComParityType.ComspecParityNone,
+                                                                     ComPort.eComStopBits.ComspecStopBits1,
+                                         ComPort.eComProtocolType.ComspecProtocolRS485,
+                                         ComPort.eComHardwareHandshakeType.ComspecHardwareHandshakeNone,
+                                         ComPort.eComSoftwareHandshakeType.ComspecSoftwareHandshakeNone,
+                                         false);
+            }
+        }
+
+        void comIsin_SerialDataReceived(ComPort ReceivingComPort, ComPortSerialDataEventArgs args)
+        {
+            byte[] sendBytes = Encoding.GetEncoding(28591).GetBytes(args.SerialData);
+            //   ILiveDebug.Instance.WriteLine(this.addr+"IsinReceived" + BitConverter.ToString(sendBytes, 0, sendBytes.Length));
+        }
+        #region 设置亮度
+        /// <summary>
+        /// 设置第一路调光亮度
+        /// </summary>
+        /// <param name="p">亮度 0-255</param>
+        public void SetDim1(int p)
+        {
+
+            byte[] sendBytes = this.BuildCMD((byte)addr, 0xA2, 0x01, 0x00, 0x00);
+
+            string cmd = Encoding.GetEncoding(28591).GetString(sendBytes, 0, sendBytes.Length);
+
+            this.comIsin.Send(cmd);
+            this.Status.Dim1 = p;
+            Thread.Sleep(500);
+        }
+        /// <summary>
+        /// 设置第二路调光亮度
+        /// </summary>
+        /// <param name="p">亮度 0-255</param>
+        public void SetDim2(int p)
+        {
+
+            byte[] sendBytes = this.BuildCMD((byte)addr, 0xA2, 0x02, 0x00, (byte)p);
+
+            string cmd = Encoding.GetEncoding(28591).GetString(sendBytes, 0, sendBytes.Length);
+
+            this.comIsin.Send(cmd);
+            this.Status.Dim2 = p;
+            Thread.Sleep(500);
+        }
+        /// <summary>
+        /// 设置第三路调光亮度
+        /// </summary>
+        /// <param name="p">亮度 0-255</param>
+        public void SetDim3(int p)
+        {
+            byte[] sendBytes = this.BuildCMD((byte)addr, 0xA2, 0x01, 0x00, (byte)p);
+            string cmd = Encoding.GetEncoding(28591).GetString(sendBytes, 0, sendBytes.Length);
+            this.comIsin.Send(cmd);
+            this.Status.Dim3 = p;
+            Thread.Sleep(500);
+        }
+        /// <summary>
+        /// 设置第四路调光亮度
+        /// </summary>
+        /// <param name="p">亮度 0-255</param>
+        public void SetDim4(int p)
+        {
+            byte[] sendBytes = this.BuildCMD((byte)addr, 0xA2, 0x01, 0x00, (byte)p);
+
+            string cmd = Encoding.GetEncoding(28591).GetString(sendBytes, 0, sendBytes.Length);
+
+            this.comIsin.Send(cmd);
+            this.Status.Dim4 = p;
+            Thread.Sleep(500);
+        }
+        #endregion
+     
+        private byte[] BuildCMD(byte addr,byte fun,byte port1,byte port2,byte p)
+        {
+            /*
+            * 1 B2 协议头 
+            * 2 1-99 设备编号
+            * 3 A2:开关 A3 置反+调光加减 A4：设定启亮点
+            * 4 选中通道 
+            *  00 选中 0 路 
+            *  0F 选中 4 路 
+            * 5 默认00
+            * 6 00 亮度0 FF亮度100    00：调光- 01：调光+ 02：置反
+            * 8 Check 校验和高位（2-7 位校验） 
+            * 9 Check 校验和低位 10 2B 协议尾 
+            */
+            // byte[] checkarr1 = new byte[2];
+            // this.ConvertIntToByteArray(address + port1 + port1 + 162, ref checkarr1);
+            byte[] checkarr1 = BitConverter.GetBytes(addr + fun + port1+port2+p);
+
+            byte[] sendBytes = new byte[] { 0xB2, addr, fun, port1, port2, checkarr1[0], 0x2B };
+            return sendBytes;
+        }
+    }
+    public class ILiveIsinDimmerStatus
+    {
+        public int Dim1=0;
+        public int Dim2=0;
+        public int Dim3=0;
+        public int Dim4=0;
     }
     public class ILiveIsinStatus
     {
